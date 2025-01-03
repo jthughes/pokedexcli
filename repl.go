@@ -33,7 +33,7 @@ func repl() {
 			fmt.Println("Unknown command")
 			continue
 		}
-		err := command.callback(&config)
+		err := command.callback(&config, words)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -48,7 +48,7 @@ func cleanInput(text string) []string {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*Config) error
+	callback    func(*Config, []string) error
 }
 
 type Config struct {
@@ -74,6 +74,11 @@ func registerCommands() (commands map[string]cliCommand) {
 		description: "Displays the previous 20 map locations",
 		callback:    commandMapBack,
 	}
+	commands["explore"] = cliCommand{
+		name:        "explore",
+		description: "Displays the Pokemon found at the provided location",
+		callback:    commandExplore,
+	}
 	commands["exit"] = cliCommand{
 		name:        "exit",
 		description: "Exit the Pokedex",
@@ -82,7 +87,7 @@ func registerCommands() (commands map[string]cliCommand) {
 	return commands
 }
 
-func commandHelp(config *Config) error {
+func commandHelp(config *Config, args []string) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
 	fmt.Println()
@@ -105,11 +110,11 @@ func commandMap(url *string, config *Config) error {
 	return nil
 }
 
-func commandMapForward(config *Config) error {
+func commandMapForward(config *Config, args []string) error {
 	return commandMap(config.Next, config)
 }
 
-func commandMapBack(config *Config) error {
+func commandMapBack(config *Config, args []string) error {
 	if config.Previous == nil {
 		fmt.Println("you're on the first page")
 		return nil
@@ -117,7 +122,25 @@ func commandMapBack(config *Config) error {
 	return commandMap(config.Previous, config)
 }
 
-func commandExit(config *Config) error {
+func commandExplore(config *Config, args []string) error {
+	if len(args) != 2 {
+		fmt.Println("Expecting: explore <location-area>")
+		return nil
+	}
+	locationArea := args[1]
+	fmt.Println("Exploring " + locationArea + "...")
+	pokemonList, err := pokeapi.GetPokemonList(locationArea, config.Cache)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Found Pokemon:")
+	for _, encounter := range pokemonList {
+		fmt.Println(" - " + encounter.Pokemon.Name)
+	}
+	return nil
+}
+
+func commandExit(config *Config, args []string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
