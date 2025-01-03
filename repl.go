@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/jthughes/pokedexcli/internal/pokeapi"
+	"github.com/jthughes/pokedexcli/internal/pokecache"
 )
 
 var commands map[string]cliCommand
@@ -14,6 +16,12 @@ var commands map[string]cliCommand
 func repl() {
 	commands = registerCommands()
 	config := Config{}
+	interval, err := time.ParseDuration("5s")
+	if err != nil {
+		fmt.Println("Unable to set duration:", err)
+		os.Exit(1)
+	}
+	config.Cache = pokecache.NewCache(interval)
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Pokedex > ")
@@ -46,6 +54,7 @@ type cliCommand struct {
 type Config struct {
 	Next     *string
 	Previous *string
+	Cache    *pokecache.Cache
 }
 
 func registerCommands() (commands map[string]cliCommand) {
@@ -84,7 +93,7 @@ func commandHelp(config *Config) error {
 }
 
 func commandMap(url *string, config *Config) error {
-	locations, err := pokeapi.GetResourceList(url)
+	locations, err := pokeapi.GetResourceList(url, config.Cache)
 	if err != nil {
 		return err
 	}
