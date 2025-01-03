@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
+	"math/rand/v2"
 	"os"
 	"strings"
 	"time"
@@ -79,6 +81,11 @@ func registerCommands() (commands map[string]cliCommand) {
 		description: "Displays the Pokemon found at the provided location",
 		callback:    commandExplore,
 	}
+	commands["catch"] = cliCommand{
+		name:        "catch",
+		description: "Attempt to catch a pokemon",
+		callback:    commandCatch,
+	}
 	commands["exit"] = cliCommand{
 		name:        "exit",
 		description: "Exit the Pokedex",
@@ -136,6 +143,68 @@ func commandExplore(config *Config, args []string) error {
 	fmt.Println("Found Pokemon:")
 	for _, encounter := range pokemonList {
 		fmt.Println(" - " + encounter.Pokemon.Name)
+	}
+	return nil
+}
+
+func commandCatch(config *Config, args []string) error {
+	pokeballs := map[string]float64{
+		"Poke Ball":    1.0,
+		"Great Ball":   1.5,
+		"Ultra Ball":   2.0,
+		"Safari Ball":  1.5,
+		"Premier Ball": 1.0,
+		"Luxury Ball":  1.0,
+		"Heal Ball":    1.0,
+		"Cherish Ball": 1.0,
+	}
+	if len(args) != 2 {
+		fmt.Println("Expecting: catch <pokemon>")
+		return nil
+	}
+	pokemonName := args[1]
+	// pokemon, err := pokeapi.GetPokemon(pokemonName, config.Cache)
+	// if err != nil {
+	// 	return err
+	// }
+	pokemonSpecies, err := pokeapi.GetPokemonSpecies(pokemonName, config.Cache)
+	if err != nil {
+		return err
+	}
+	ball_type := "Poke Ball"
+	fmt.Println("Throwing a " + ball_type + " at " + pokemonName + "...")
+
+	pokeballRate := pokeballs[ball_type]
+	catchRate := float64(pokemonSpecies.CaptureRate) * pokeballRate
+	shakeRate := int(math.Floor(
+		1_048_560 / math.Floor(math.Sqrt(
+			math.Floor(math.Sqrt(
+				math.Floor(16_711_680/catchRate)))))))
+	shakes := [4]int{
+		rand.IntN(65_536),
+		rand.IntN(65_536),
+		rand.IntN(65_536),
+		rand.IntN(65_536),
+	}
+	shakeSuccesses := 0
+	for shake := range shakes[:3] {
+		if shake >= shakeRate {
+			break
+		}
+		shakeSuccesses += 1
+		fmt.Println("*Shakes*")
+		time.Sleep(1500 * time.Millisecond)
+	}
+	shakeMessage := map[int]string{
+		0: "Oh, no!\nThe Pokemon broke free!",
+		1: "Aww!\nIt appeared to be caught!",
+		2: "Aargh!\nAlmost had it!",
+		3: "Shoot!\nIt was so close, too!",
+	}
+	if shakeSuccesses == 3 && shakes[3] < shakeRate {
+		fmt.Println("Gotcha! " + pokemonName + " was caught!")
+	} else {
+		fmt.Println(shakeMessage[shakeSuccesses])
 	}
 	return nil
 }

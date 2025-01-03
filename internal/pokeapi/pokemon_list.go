@@ -77,12 +77,3 @@ func GetPokemonList(locationArea string, cache *pokecache.Cache) ([]PokemonEncou
 	}
 	return resources.Encounters, nil
 }
-
-// func (r ResourceList) print() {
-// 	data, err := json.MarshalIndent(r, "", "  ")
-// 	if err != nil {
-// 		fmt.Println("Unable to marshall ResourceList")
-// 		return
-// 	}
-// 	fmt.Println(string(data))
-// }
