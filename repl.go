@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/jthughes/pokedexcli/internal/pokeapi"
 )
 
 var commands map[string]cliCommand
@@ -81,8 +83,8 @@ func commandHelp(config *Config) error {
 	return nil
 }
 
-func commandMap(url string, config *Config) error {
-	locations, err := getResourceList(url)
+func commandMap(url *string, config *Config) error {
+	locations, err := pokeapi.GetResourceList(url)
 	if err != nil {
 		return err
 	}
@@ -95,11 +97,7 @@ func commandMap(url string, config *Config) error {
 }
 
 func commandMapForward(config *Config) error {
-	url := "https://pokeapi.co/api/v2/location-area/"
-	if config.Next != nil {
-		url = *(config.Next)
-	}
-	return commandMap(url, config)
+	return commandMap(config.Next, config)
 }
 
 func commandMapBack(config *Config) error {
@@ -107,7 +105,7 @@ func commandMapBack(config *Config) error {
 		fmt.Println("you're on the first page")
 		return nil
 	}
-	return commandMap(*config.Previous, config)
+	return commandMap(config.Previous, config)
 }
 
 func commandExit(config *Config) error {
