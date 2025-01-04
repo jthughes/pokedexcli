@@ -84,14 +84,19 @@ func registerCommands() (commands map[string]cliCommand) {
 		description: "Displays the Pokemon found at the provided location",
 		callback:    commandExplore,
 	}
+	commands["pokedex"] = cliCommand{
+		name:        "pokedex",
+		description: "List all Pokemon in the Pokedex",
+		callback:    commandPokedex,
+	}
 	commands["catch"] = cliCommand{
 		name:        "catch",
-		description: "Attempt to catch a pokemon",
+		description: "Attempt to catch a Pokemon",
 		callback:    commandCatch,
 	}
 	commands["inspect"] = cliCommand{
 		name:        "inspect",
-		description: "Inspect a pokemon in the pokedex",
+		description: "Inspect a Pokemon in the Pokedex",
 		callback:    commandInspect,
 	}
 	commands["exit"] = cliCommand{
@@ -158,6 +163,22 @@ func commandExplore(config *Config, args []string) error {
 type Pokemon struct {
 	pokeapi.Pokemon
 	Species pokeapi.PokemonSpecies
+}
+
+func commandPokedex(config *Config, args []string) error {
+	if len(args) != 1 {
+		fmt.Println("Expecting: pokedex")
+		return nil
+	}
+	if len(config.Pokedex) == 0 {
+		fmt.Println("The Pokedex is empty. Catch some Pokemon!")
+		return nil
+	}
+	fmt.Println("Your Pokedex:")
+	for name, _ := range config.Pokedex {
+		fmt.Println("  -", name)
+	}
+	return nil
 }
 
 func commandCatch(config *Config, args []string) error {
