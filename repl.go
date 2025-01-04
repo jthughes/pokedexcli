@@ -17,13 +17,15 @@ var commands map[string]cliCommand
 
 func repl() {
 	commands = registerCommands()
-	config := Config{}
 	interval, err := time.ParseDuration("5s")
 	if err != nil {
 		fmt.Println("Unable to set duration:", err)
 		os.Exit(1)
 	}
-	config.Cache = pokecache.NewCache(interval)
+	config := Config{
+		Cache:   pokecache.NewCache(interval),
+		Pokedex: map[string]Pokemon{},
+	}
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Pokedex > ")
@@ -57,6 +59,7 @@ type Config struct {
 	Next     *string
 	Previous *string
 	Cache    *pokecache.Cache
+	Pokedex  map[string]Pokemon
 }
 
 func registerCommands() (commands map[string]cliCommand) {
@@ -147,6 +150,11 @@ func commandExplore(config *Config, args []string) error {
 	return nil
 }
 
+type Pokemon struct {
+	pokeapi.Pokemon
+	Species pokeapi.PokemonSpecies
+}
+
 func commandCatch(config *Config, args []string) error {
 	pokeballs := map[string]float64{
 		"Poke Ball":    1.0,
@@ -163,10 +171,10 @@ func commandCatch(config *Config, args []string) error {
 		return nil
 	}
 	pokemonName := args[1]
-	// pokemon, err := pokeapi.GetPokemon(pokemonName, config.Cache)
-	// if err != nil {
-	// 	return err
-	// }
+	pokemon, err := pokeapi.GetPokemon(pokemonName, config.Cache)
+	if err != nil {
+		return err
+	}
 	pokemonSpecies, err := pokeapi.GetPokemonSpecies(pokemonName, config.Cache)
 	if err != nil {
 		return err
@@ -175,7 +183,7 @@ func commandCatch(config *Config, args []string) error {
 	fmt.Println("Throwing a " + ball_type + " at " + pokemonName + "...")
 
 	pokeballRate := pokeballs[ball_type]
-	catchRate := float64(pokemonSpecies.CaptureRate) * pokeballRate
+	catchRate := (1.0 / 3.0) * float64(pokemonSpecies.CaptureRate) * pokeballRate
 	shakeRate := int(math.Floor(
 		1_048_560 / math.Floor(math.Sqrt(
 			math.Floor(math.Sqrt(
@@ -187,7 +195,7 @@ func commandCatch(config *Config, args []string) error {
 		rand.IntN(65_536),
 	}
 	shakeSuccesses := 0
-	for shake := range shakes[:3] {
+	for _, shake := range shakes[:3] {
 		if shake >= shakeRate {
 			break
 		}
@@ -203,6 +211,14 @@ func commandCatch(config *Config, args []string) error {
 	}
 	if shakeSuccesses == 3 && shakes[3] < shakeRate {
 		fmt.Println("Gotcha! " + pokemonName + " was caught!")
+		if _, ok := config.Pokedex[pokemonName]; ok {
+			return nil
+		}
+		fmt.Println("Adding " + pokemonName + " to the Pokedex.")
+		config.Pokedex[pokemonName] = Pokemon{
+			Pokemon: pokemon,
+			Species: pokemonSpecies,
+		}
 	} else {
 		fmt.Println(shakeMessage[shakeSuccesses])
 	}
