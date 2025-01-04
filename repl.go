@@ -89,6 +89,11 @@ func registerCommands() (commands map[string]cliCommand) {
 		description: "Attempt to catch a pokemon",
 		callback:    commandCatch,
 	}
+	commands["inspect"] = cliCommand{
+		name:        "inspect",
+		description: "Inspect a pokemon in the pokedex",
+		callback:    commandInspect,
+	}
 	commands["exit"] = cliCommand{
 		name:        "exit",
 		description: "Exit the Pokedex",
@@ -222,6 +227,33 @@ func commandCatch(config *Config, args []string) error {
 	} else {
 		fmt.Println(shakeMessage[shakeSuccesses])
 	}
+	return nil
+}
+
+func commandInspect(config *Config, args []string) error {
+	if len(args) != 2 {
+		fmt.Println("Expecting: inspect <pokemon>")
+		return nil
+	}
+	pokemonName := args[1]
+	pokemon, ok := config.Pokedex[pokemonName]
+	if !ok {
+		fmt.Println(pokemonName + " has not been caught yet.")
+		return nil
+	}
+	fmt.Println("Name:", pokemon.Name)
+	fmt.Println("Height:", pokemon.Height)
+	fmt.Println("Weight:", pokemon.Weight)
+	fmt.Println("Stats:")
+
+	for _, stat := range pokemon.Stats {
+		fmt.Println("  -"+stat.Stat.Name+":", stat.BaseStat)
+	}
+	fmt.Println("Types:")
+	for _, pokemonType := range pokemon.Types {
+		fmt.Println("  -", pokemonType.Type.Name)
+	}
+
 	return nil
 }
 
